@@ -1,0 +1,52 @@
+version: '3.8'
+
+volumes:
+  mysql-volume:
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    command: uwsgi --socket :8000 --module backend.wsgi --py-autoreload 1 --logto /tmp/tmp.log
+    volumes:
+      - ./backend/:/app/
+    ports:
+      - 8000:8000
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    volumes:
+      - ./frontend/:/app/
+    ports:
+      - 3000:3000
+
+  web:
+    build:
+      context: .
+      dockerfile: ./nginx/Dockerfile
+    ports:
+      - 80:80
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/uwsgi_params:/etc/nginx/uwsgi_params
+
+  db:
+    build:
+      context: .
+      dockerfile: ./mysql/Dockerfile
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: mahjong_record
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: passw0rd
+      TZ: 'Asia/Tokyo'
+    volumes:
+      - mysql-volume:/var/lib/mysql
